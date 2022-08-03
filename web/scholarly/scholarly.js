@@ -4,26 +4,28 @@ import {
   initUI,
   onModeChange,
   sendEvent,
-  setMode
+  setMode,
 } from "./ui.js";
-import {getTextColor, removeEyeCancer} from "./color_utils.js";
-import {getFilter, onFilterChange, shouldShow} from "./filter.js";
-import {getScope} from "./scope.js";
+import { getTextColor, removeEyeCancer } from "./color_utils.js";
+import { getFilter, onFilterChange, shouldShow } from "./filter.js";
+import { getScope } from "./scope.js";
 
 window.scholarlyCollections = [
-  {name: "Collection 1", id: 1},
-  {name: "Collection 2", id: 2},
-  {name: "Collection 3", id: 3},
+  { name: "Collection 1", id: 1 },
+  { name: "Collection 2", id: 2 },
+  { name: "Collection 3", id: 3 },
 ];
-window.scholarlyAnnotations = [{
-  type: 'highlight',
-  startPosition: {x: 0.3, y: 0.3},
-  endPosition: {x: 0.7, y: 0.7},
-  page: 1,
-  color: '#FFFF00',
-  collectionId: 2,
-  ownerId: 1
-}];
+window.scholarlyAnnotations = [
+  {
+    type: "highlight",
+    startPosition: { x: 0.3, y: 0.3 },
+    endPosition: { x: 0.7, y: 0.7 },
+    page: 1,
+    color: "#FFFF00",
+    collectionId: 2,
+    ownerId: 1,
+  },
+];
 window.scholarlyUsers = new Map();
 window.scholarlyUserId = 1;
 window.scholarlyCurrentCollection = null;
@@ -34,8 +36,8 @@ let es;
 let stickyNoteCounter = 1;
 let stickyNoteId = 1;
 
-let initializedPages = new Set();
-let pages = new Map();
+const initializedPages = new Set();
+const pages = new Map();
 
 export function init(app) {
   sendEvent("initialized");
@@ -47,12 +49,12 @@ export function init(app) {
       return;
     }
 
-    let page = event.pageNumber;
-    let canvas = event.source.canvas;
+    const page = event.pageNumber;
+    const canvas = event.source.canvas;
     pages.set(page, {
       canvasElement: canvas,
       pageElement: canvas.parentElement.parentElement,
-      source: event.source
+      source: event.source,
     });
 
     drawAnnotations(event);
@@ -68,12 +70,12 @@ export function init(app) {
 
 async function rerenderPages(rerenderPages) {
   for (const page of rerenderPages) {
-    let s = pages.get(page).source;
+    const s = pages.get(page).source;
     s.reset();
     s.draw();
   }
 
-  let viewerContainer = document.getElementById("viewerContainer");
+  const viewerContainer = document.getElementById("viewerContainer");
   viewerContainer.scrollTop += 2;
   setTimeout(() => {
     viewerContainer.scrollTop -= 2;
@@ -85,39 +87,40 @@ function initEraser(page) {
     return;
   }
 
-  let {pageElement} = pages.get(page);
-  pageElement.addEventListener("click", (e) => {
-    if (getMode() !== 'eraser') {
+  const { pageElement } = pages.get(page);
+  pageElement.addEventListener("click", e => {
+    if (getMode() !== "eraser") {
       return;
     }
 
-    let {canvasElement} = pages.get(page);
-    let bb = canvasElement.getBoundingClientRect();
-    let relX = (e.x - bb.left) / bb.width;
-    let relY = (e.y - bb.top) / bb.height;
+    const { canvasElement } = pages.get(page);
+    const bb = canvasElement.getBoundingClientRect();
+    const relX = (e.x - bb.left) / bb.width;
+    const relY = (e.y - bb.top) / bb.height;
 
-    const wasClicked = (highlight) => {
+    const wasClicked = highlight => {
       if (highlight.page !== page) {
         return false;
       }
 
-      let startX = highlight.relPos.x, startY = highlight.relPos.y;
+      let startX = highlight.relPos.x,
+        startY = highlight.relPos.y;
       if (highlight.relSize.width < 0) {
         startX += highlight.relSize.width;
       }
       if (highlight.relSize.height < 0) {
         startY += highlight.relSize.height;
       }
-      if(relX < startX || relY < startY) {
+      if (relX < startX || relY < startY) {
         return false;
       }
 
-      let endX = startX + Math.abs(highlight.relSize.width);
-      let endY = startY + Math.abs(highlight.relSize.height);
+      const endX = startX + Math.abs(highlight.relSize.width);
+      const endY = startY + Math.abs(highlight.relSize.height);
       return !(relX > endX || relY > endY);
-    }
+    };
 
-    let clicked = highlights.filter(wasClicked)[0]
+    const clicked = highlights.filter(wasClicked)[0];
 
     if (clicked != null) {
       console.log("erasing a highlight", clicked);
@@ -134,55 +137,61 @@ export function handleModeChange() {
   const styleElements = {};
   const preventDefault = e => e.preventDefault();
   const makeStyleElement = mode => {
-    let css = `* { cursor: url(/${mode}.png) 0 24, crosshair !important }`;
-    let element = document.createElement('style');
-    element.type = 'text/css';
-    element.appendChild(document.createTextNode(css))
+    const css = `* { cursor: url(/${mode}.png) 0 24, crosshair !important }`;
+    const element = document.createElement("style");
+    element.type = "text/css";
+    element.append(document.createTextNode(css));
     return element;
   };
   const clearStyle = () => {
-    let style = styleElements?.[activeStyle];
+    const style = styleElements?.[activeStyle];
     activeStyle = null;
     if (style != null) {
-      document.head.removeChild(style);
+      style.remove();
     }
-  }
+  };
   const setStyle = mode => {
     activeStyle = mode;
-    document.head.appendChild(styleElements[mode]);
-  }
+    document.head.append(styleElements[mode]);
+  };
 
-  ['eraser', 'highlight', 'stickyNote'].forEach(
-    s => styleElements[s] = makeStyleElement(s));
+  ["eraser", "highlight", "stickyNote"].forEach(
+    s => (styleElements[s] = makeStyleElement(s))
+  );
 
-  onModeChange((mode) => {
-    if (mode === 'none') {
+  onModeChange(mode => {
+    if (mode === "none") {
       clearStyle();
-      window.removeEventListener("selectstart", preventDefault)
+      window.removeEventListener("selectstart", preventDefault);
     } else {
       clearStyle();
       setStyle(mode);
-      window.addEventListener("selectstart", preventDefault)
+      window.addEventListener("selectstart", preventDefault);
     }
   });
 }
 
 function initAnnotations() {
   // Loads the existing annotations into the highlights / stickyNotes array.
-  for (let annotation of window.scholarlyAnnotations) {
+  for (const annotation of window.scholarlyAnnotations) {
     if (annotation.type === "highlight") {
       highlights.push({
         id: annotation.id,
         collectionId: annotation.collectionId,
         page: annotation.page,
-        relPos: {x: annotation.startPosition.x, y: annotation.startPosition.y},
+        relPos: {
+          x: annotation.startPosition.x,
+          y: annotation.startPosition.y,
+        },
         relSize: {
           width: Math.abs(
-            annotation.startPosition.x - annotation.endPosition.x),
+            annotation.startPosition.x - annotation.endPosition.x
+          ),
           height: Math.abs(
-            annotation.startPosition.y - annotation.endPosition.y)
+            annotation.startPosition.y - annotation.endPosition.y
+          ),
         },
-        color: annotation.color
+        color: annotation.color,
       });
     } else if (annotation.type === "stickyNote") {
       stickyNotes.push({
@@ -191,9 +200,9 @@ function initAnnotations() {
         collectionId: annotation.collectionId,
         stickyNoteId,
         page: annotation.page,
-        relPos: {x: annotation.position.x, y: annotation.position.y},
+        relPos: { x: annotation.position.x, y: annotation.position.y },
         color: annotation.color,
-        content: annotation.content
+        content: annotation.content,
       });
       stickyNoteId++;
     } else {
@@ -234,14 +243,14 @@ function createHighlight(page) {
     es = e;
     startDrag(e);
 
-    let {canvasElement, pageElement} = pages.get(page);
-    let bb = canvasElement.getBoundingClientRect();
+    const { canvasElement, pageElement } = pages.get(page);
+    const bb = canvasElement.getBoundingClientRect();
     relX = (e.x - bb.left) / bb.width;
     relY = (e.y - bb.top) / bb.height;
     preview = document.createElement("div");
     preview.style.position = "absolute";
-    preview.style.left = (e.x - bb.left) + "px";
-    preview.style.top = (e.y - bb.top) + "px";
+    preview.style.left = e.x - bb.left + "px";
+    preview.style.top = e.y - bb.top + "px";
     preview.style.backgroundColor = getColor();
     preview.style.opacity = "0.2";
 
@@ -253,27 +262,27 @@ function createHighlight(page) {
       return;
     }
 
-    let {canvasElement} = pages.get(page);
-    let bb = canvasElement.getBoundingClientRect();
-    let endRelX = (e.x - bb.left) / bb.width;
-    let endRelY = (e.y - bb.top) / bb.height;
-    let relWidth = endRelX - relX;
-    let relHeight = endRelY - relY;
-    let absWidth = relWidth * bb.width;
-    let absHeight = relHeight * bb.height;
+    const { canvasElement } = pages.get(page);
+    const bb = canvasElement.getBoundingClientRect();
+    const endRelX = (e.x - bb.left) / bb.width;
+    const endRelY = (e.y - bb.top) / bb.height;
+    const relWidth = endRelX - relX;
+    const relHeight = endRelY - relY;
+    const absWidth = relWidth * bb.width;
+    const absHeight = relHeight * bb.height;
     preview.style.width = Math.abs(absWidth) + "px";
     preview.style.height = Math.abs(absHeight) + "px";
 
     if (absWidth < 0) {
-      preview.style.left = (e.x - bb.left) + "px";
+      preview.style.left = e.x - bb.left + "px";
     } else {
-      preview.style.left = (relX * bb.width) + "px";
+      preview.style.left = relX * bb.width + "px";
     }
 
     if (absHeight < 0) {
-      preview.style.top = (e.y - bb.top) + "px";
+      preview.style.top = e.y - bb.top + "px";
     } else {
-      preview.style.top = (relY * bb.height) + "px";
+      preview.style.top = relY * bb.height + "px";
     }
   }
 
@@ -283,32 +292,36 @@ function createHighlight(page) {
     }
 
     onDragEnd();
-    let {canvasElement, pageElement} = pages.get(page);
-    let bb = canvasElement.getBoundingClientRect();
-    let relX = (es.x - bb.left) / bb.width;
-    let relY = (es.y - bb.top) / bb.height;
-    let relW = (e.x - es.x) / bb.width;
-    let relH = (e.y - es.y) / bb.height;
-    let color = getColor();
+    const { canvasElement, pageElement } = pages.get(page);
+    const bb = canvasElement.getBoundingClientRect();
+    const relX = (es.x - bb.left) / bb.width;
+    const relY = (es.y - bb.top) / bb.height;
+    const relW = (e.x - es.x) / bb.width;
+    const relH = (e.y - es.y) / bb.height;
+    const color = getColor();
     renderRect(canvasElement, relX, relY, relW, relH, color);
 
-    let highlight = {
+    const highlight = {
       collectionId: getScope(),
       page,
-      relPos: {x: relX, y: relY},
-      relSize: {width: relW, height: relH},
-      color
+      relPos: { x: relX, y: relY },
+      relSize: { width: relW, height: relH },
+      color,
     };
     highlights.push(highlight);
 
-    sendAnnotation(false, {
-      collectionId: getScope(),
-      color,
-      page,
-      startPosition: {x: relX, y: relY},
-      endPosition: {x: relX + relW, y: relY + relH},
-      type: "highlight",
-    }, (id) => highlight.id = id);
+    sendAnnotation(
+      false,
+      {
+        collectionId: getScope(),
+        color,
+        page,
+        startPosition: { x: relX, y: relY },
+        endPosition: { x: relX + relW, y: relY + relH },
+        type: "highlight",
+      },
+      id => (highlight.id = id)
+    );
 
     preview = null;
 
@@ -318,7 +331,7 @@ function createHighlight(page) {
   }
 
   if (!initializedPages.has(page)) {
-    let pageElement = pages.get(page).pageElement;
+    const pageElement = pages.get(page).pageElement;
     pageElement.addEventListener("mousedown", mouseDownListener);
     document.addEventListener("mousemove", mouseMoveListener);
     document.addEventListener("mouseup", mouseUpListener);
@@ -335,33 +348,40 @@ function createStickyNote(page) {
       return;
     }
 
-    let {canvasElement} = pages.get(page);
-    let bb = canvasElement.getBoundingClientRect();
-    let relX = (e.x - bb.left) / bb.width;
-    let relY = (e.y - bb.top) / bb.height;
-    let color = getColor();
-    let content = null;
+    const { canvasElement } = pages.get(page);
+    const bb = canvasElement.getBoundingClientRect();
+    const relX = (e.x - bb.left) / bb.width;
+    const relY = (e.y - bb.top) / bb.height;
+    const color = getColor();
+    const content = null;
 
-    let thisStickyNoteId = ++stickyNoteId;
+    const thisStickyNoteId = ++stickyNoteId;
 
     stickyNotes.push({
       ownerId: window.scholarlyUserId,
       collectionId: getScope(),
       stickyNoteId: thisStickyNoteId,
       page,
-      relPos: {x: relX, y: relY},
+      relPos: { x: relX, y: relY },
       color,
-      content
+      content,
     });
 
-    renderNote(thisStickyNoteId, page, relX, relY, color, content,
-      getProfilePictureURL(window.scholarlyUserId))
+    renderNote(
+      thisStickyNoteId,
+      page,
+      relX,
+      relY,
+      color,
+      content,
+      getProfilePictureURL(window.scholarlyUserId)
+    );
 
-    setMode('none');
+    setMode("none");
   }
 
   if (!initializedPages.has(page)) {
-    let {pageElement} = pages.get(page);
+    const { pageElement } = pages.get(page);
     pageElement.addEventListener("click", mouseClickListener);
   }
 }
@@ -371,56 +391,72 @@ function drawAnnotations(event) {
     return;
   }
 
-  for (let element of highlights) {
+  for (const element of highlights) {
     if (!shouldShow(element.collectionId)) {
       continue;
     }
 
     if (element.page === event.pageNumber) {
-      renderHighlight(event.pageNumber, element.relPos, element.relSize,
-        element.color);
+      renderHighlight(
+        event.pageNumber,
+        element.relPos,
+        element.relSize,
+        element.color
+      );
     }
   }
 
-  for (let element of stickyNotes) {
+  for (const element of stickyNotes) {
     if (!shouldShow(element.collectionId)) {
       continue;
     }
 
     if (element.page === event.pageNumber) {
-      renderStickyNote(element.stickyNoteId, event.pageNumber,
-        element.relPos, element.content, element.color,
-        getProfilePictureURL(element.ownerId));
+      renderStickyNote(
+        element.stickyNoteId,
+        event.pageNumber,
+        element.relPos,
+        element.content,
+        element.color,
+        getProfilePictureURL(element.ownerId)
+      );
     }
   }
 }
 
 function renderRect(canvas, relX, relY, relW, relH, color) {
-  let ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
 
-  let absX = canvas.width * relX;
-  let absY = canvas.height * relY;
-  let absW = canvas.width * relW;
-  let absH = canvas.height * relH;
+  const absX = canvas.width * relX;
+  const absY = canvas.height * relY;
+  const absW = canvas.width * relW;
+  const absH = canvas.height * relH;
 
   ctx.fillStyle = color;
   ctx.globalAlpha = 0.2;
   ctx.fillRect(absX, absY, absW, absH);
 }
 
-function renderNote(stickyNoteId, page, relX, relY, color, content,
-  profilePictureURL) {
-  let {canvasElement, pageElement} = pages.get(page);
+function renderNote(
+  stickyNoteId,
+  page,
+  relX,
+  relY,
+  color,
+  content,
+  profilePictureURL
+) {
+  const { canvasElement, pageElement } = pages.get(page);
   color = removeEyeCancer(color);
-  let textColor = getTextColor(color);
-  let idSave = `StickyNoteSave${stickyNoteCounter}`;
-  let idDelete = `StickyNoteDelete${stickyNoteCounter}`;
-  let idEdit = `StickyNoteEdit${stickyNoteCounter}`;
-  let idSpanEdit = `noteEdit${stickyNoteCounter}`;
-  let idSpanDisplay = `noteDisplay${stickyNoteCounter}`;
+  const textColor = getTextColor(color);
+  const idSave = `StickyNoteSave${stickyNoteCounter}`;
+  const idDelete = `StickyNoteDelete${stickyNoteCounter}`;
+  const idEdit = `StickyNoteEdit${stickyNoteCounter}`;
+  const idSpanEdit = `noteEdit${stickyNoteCounter}`;
+  const idSpanDisplay = `noteDisplay${stickyNoteCounter}`;
   stickyNoteCounter++;
 
-  let spanEdit = document.createElement("div");
+  const spanEdit = document.createElement("div");
   spanEdit.innerHTML = `
     <div class="stickynote-wrapper" id="${idSpanEdit}">
       <div class="stickynote-content" style="background-color: ${color}">
@@ -430,13 +466,13 @@ function renderNote(stickyNoteId, page, relX, relY, color, content,
       <img alt="Avatar" src="${profilePictureURL}" referrerpolicy="no-referrer" />
     </div>
   `;
-  let bb = canvasElement.getBoundingClientRect();
+  const bb = canvasElement.getBoundingClientRect();
   spanEdit.style.position = "absolute";
-  spanEdit.style.top = (relY * bb.height) + "px";
-  spanEdit.style.left = (relX * bb.width) + "px";
-  pageElement.appendChild(spanEdit);
+  spanEdit.style.top = relY * bb.height + "px";
+  spanEdit.style.left = relX * bb.width + "px";
+  pageElement.append(spanEdit);
 
-  let spanDisplay = document.createElement("div");
+  const spanDisplay = document.createElement("div");
   spanDisplay.setAttribute("id", idSpanDisplay);
   spanDisplay.setAttribute("class", "stickynote-wrapper");
   spanDisplay.innerHTML = `
@@ -456,27 +492,29 @@ function renderNote(stickyNoteId, page, relX, relY, color, content,
     <img alt="Avatar" src="${profilePictureURL}" referrerpolicy="no-referrer" />
   `;
   spanDisplay.style.position = "absolute";
-  spanDisplay.style.top = (relY * bb.height) + "px";
-  spanDisplay.style.left = (relX * bb.width) + "px";
-  pageElement.appendChild(spanDisplay);
+  spanDisplay.style.top = relY * bb.height + "px";
+  spanDisplay.style.left = relX * bb.width + "px";
+  pageElement.append(spanDisplay);
 
   if (content == null) {
     spanDisplay.hidden = true;
   } else {
     spanEdit.hidden = true;
     document.querySelector(
-      `.stickynote-wrapper#${idSpanEdit} > div > textarea`).value = content;
+      `.stickynote-wrapper#${idSpanEdit} > div > textarea`
+    ).value = content;
     document.querySelector(
-      `.stickynote-wrapper#${idSpanDisplay} > div > p`).innerText = content;
+      `.stickynote-wrapper#${idSpanDisplay} > div > p`
+    ).innerText = content;
   }
 
   document.getElementById(idDelete).addEventListener("click", () => {
     console.error(stickyNotes);
     console.error("to remove:", stickyNoteId);
-    let stickyNote = stickyNotes.find(s => stickyNoteId === s.stickyNoteId);
+    const stickyNote = stickyNotes.find(s => stickyNoteId === s.stickyNoteId);
     deleteAnnotation(stickyNote.id, () => {
-      pageElement.removeChild(spanDisplay);
-      pageElement.removeChild(spanEdit);
+      spanDisplay.remove();
+      spanEdit.remove();
       stickyNotes = stickyNotes.filter(s => s.stickyNoteId !== stickyNoteId);
     });
   });
@@ -487,54 +525,81 @@ function renderNote(stickyNoteId, page, relX, relY, color, content,
   });
 
   document.getElementById(idSave).addEventListener("click", () => {
-    let textField = document.querySelector(
-      `.stickynote-wrapper#${idSpanEdit} > div > textarea`);
-    let paragraph = document.querySelector(
-      `.stickynote-wrapper#${idSpanDisplay} > div > p`);
+    const textField = document.querySelector(
+      `.stickynote-wrapper#${idSpanEdit} > div > textarea`
+    );
+    const paragraph = document.querySelector(
+      `.stickynote-wrapper#${idSpanDisplay} > div > p`
+    );
     console.log(textField.value);
     spanEdit.hidden = true;
     spanDisplay.hidden = false;
 
-    let stickyNote = stickyNotes.find(s => s.stickyNoteId === stickyNoteId);
+    const stickyNote = stickyNotes.find(s => s.stickyNoteId === stickyNoteId);
 
-    let updated = stickyNote.id != null;
-    sendAnnotation(updated, {
-      id: stickyNote.id,
-      collectionId: stickyNote.collectionId,
-      content: stickyNote.content,
-      color: stickyNote.color,
-      page: stickyNote.page,
-      position: {x: stickyNote.relPos.x, y: stickyNote.relPos.y},
-      type: "stickyNote"
-    }, (id) => {
-      paragraph.innerText = textField.value;
-      stickyNote.content = textField.value;
-      stickyNote.id = id
-    });
+    const updated = stickyNote.id != null;
+    sendAnnotation(
+      updated,
+      {
+        id: stickyNote.id,
+        collectionId: stickyNote.collectionId,
+        content: textField.value,
+        color: stickyNote.color,
+        page: stickyNote.page,
+        position: { x: stickyNote.relPos.x, y: stickyNote.relPos.y },
+        type: "stickyNote",
+      },
+      id => {
+        paragraph.innerText = textField.value;
+        stickyNote.content = textField.value;
+        stickyNote.id = id;
+      }
+    );
   });
 }
 
 function startDrag() {
-  window.addEventListener('mouseup', onDragEnd);
+  window.addEventListener("mouseup", onDragEnd);
 }
 
 function onDragEnd() {
-  window.removeEventListener('mouseup', onDragEnd);
+  window.removeEventListener("mouseup", onDragEnd);
 }
 
-function renderStickyNote(stickyNoteId, page, relPos, content, color,
-  profilePictureURL) {
-  renderNote(stickyNoteId, page, relPos.x, relPos.y, color, content,
-    profilePictureURL);
+function renderStickyNote(
+  stickyNoteId,
+  page,
+  relPos,
+  content,
+  color,
+  profilePictureURL
+) {
+  renderNote(
+    stickyNoteId,
+    page,
+    relPos.x,
+    relPos.y,
+    color,
+    content,
+    profilePictureURL
+  );
 }
 
 function renderHighlight(page, relPos, relSize, color) {
-  let {canvasElement} = pages.get(page);
-  renderRect(canvasElement, relPos.x, relPos.y, relSize.width, relSize.height,
-    color);
+  const { canvasElement } = pages.get(page);
+  renderRect(
+    canvasElement,
+    relPos.x,
+    relPos.y,
+    relSize.width,
+    relSize.height,
+    color
+  );
 }
 
 function getProfilePictureURL(userId) {
-  return window.scholarlyUsers?.get(userId)?.profilePicture
-    ?? 'images/default-user.png';
+  return (
+    window.scholarlyUsers?.get(userId)?.profilePicture ??
+    "images/default-user.png"
+  );
 }
